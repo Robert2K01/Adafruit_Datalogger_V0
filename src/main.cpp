@@ -21,6 +21,7 @@ const int LOG_INTERVAL = 1000; //Measure every 1sec
 
 
 void setup() {
+  //Start the serial port
   Serial.begin(57600);
 
   //Setting pins
@@ -31,11 +32,11 @@ void setup() {
   //--------------RTC Setup---------------------//
   Serial.print("Setup RTC...");
   Wire.begin();
-  if (!RTC.begin()) {
+  if (!RTC.begin()) { //checking to make sure our RTC is there
     Serial.print("RTC failed");
   }
 
-  if (!RTC.initialized() || RTC.lostPower()) {
+  if (!RTC.initialized() || RTC.lostPower()) { //If the RTC doesn't know what time it is, we give it the computer's time
     Serial.print("RTC not initialized, setting time...");
     RTC.adjust(DateTime(F(__DATE__),F(__TIME__)));
     Serial.println("Time set.");
@@ -45,9 +46,9 @@ void setup() {
 
   //--------------SD Setup----------------------//
   Serial.print("Setup SD...");
-  if(!SD.begin(chipSelect)) { //checks to see if card worked
+  if(!SD.begin(chipSelect)) { //Check to see if card worked
     Serial.print("Card failed.");
-    while (1); //endless loop of death
+    while (1); //We just loop forever since there's no point to do anything if the card doesn't log
   }
   Serial.println("Card good.");
 
@@ -57,22 +58,20 @@ void setup() {
   for (uint8_t i = 0; i < 100; i++) { //Making filename
     filename[6] = i/10 + '0';
     filename[7] = i%10 + '0';
-    if (! SD.exists(filename)) {
-      // only open a new file if it doesn't exist
+    if (! SD.exists(filename)) { // only open a new file if it doesn't exist
       logfile = SD.open(filename, FILE_WRITE); 
-      break;  // leave the loop!
+      break;  //leave the loop!
     }
   }
 
-  //ensure file opened
-  if (!logfile) {
+  if (!logfile) { //We check to see if the log file actually opened
     Serial.print("Logfile failed.");
     while (1); //endless loop of death
   }
   Serial.print("Logging to: ");
   Serial.println(filename);
 
-  //format log file (unix time, millis(), tempC, photoread)
+  //Formatting the log file (unix time, millis(), tempC, photoread)
   logfile.print("Unix_Time");
   logfile.print(',');
   logfile.print("millis()");
@@ -91,13 +90,16 @@ void loop() {
   int LM35_Reading = analogRead(LM35_Pin);
   int Photo_Reading = analogRead(Photo_Pin);
 
-  double tempC = (LM35_Reading / 1023) * 500;
+  //Doing some math to convert the analog measurement into degrees celsius
+  double tempC = (LM35_Reading / 1023) * 500; 
 
+  //Serial print some outputs for debugging
   Serial.print("Temp = ");
   Serial.print(tempC);
   Serial.print("  PhotoReading = "); 
   Serial.println(Photo_Reading);
 
+  //We now print the values of each measurement into a single row of our CSV file
   logfile.print(now.unixtime());
   logfile.print(',');
   logfile.print(millis());
